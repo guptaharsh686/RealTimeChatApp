@@ -4,25 +4,32 @@ import 'bootstrap/dist/css/bootstrap.css';import { Row, Col, Container } from 'r
 import WaitingRoom from './components/waitingroom';
 import { useState } from 'react';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import ChatRoom from './components/ChatRoom';
 
 
 function App() {
   const[conn,setConnection] = useState();
+  const[messages,setMessages] = useState();
+
   const joinChatRoom = async (username,chatroom) => {
     try {
       //initiate a connection
       const conn = new HubConnectionBuilder()
-                    .withUrl("https://localhost:7135/")
+                    .withUrl("https://localhost:7135/chat")
                     .configureLogging(LogLevel.Information)
-                    .build();
+                    .build(); 
 
       //set up builder
       conn.on("JoinSpecificChatRoom",(username,msg) => {
         console.log("msg: ",msg);
       })
 
+      conn.on("RecieveSpecificMessage",(username,msg) => {
+        setMessages(messages => [...messages, {username,msg}]);
+      })
+
       await conn.start();
-      await conn.Invoke("JoinSpecificChatRoom",{username,chatroom});
+      await conn.invoke("JoinSpecificChatRoom",{username,chatroom});
 
       setConnection(conn);
 
@@ -43,7 +50,12 @@ function App() {
               </h1>
             </Col>
           </Row>
-          <WaitingRoom joinChatRoom={joinChatRoom}></WaitingRoom>
+          
+          {
+            !conn 
+            ? <WaitingRoom joinChatRoom={joinChatRoom}></WaitingRoom>
+            : <ChatRoom messages={messages}></ChatRoom>
+          }
         </Container>
       </main>
     </div>
